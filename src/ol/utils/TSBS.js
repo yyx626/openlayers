@@ -4,29 +4,12 @@
 import { Vector as VectorSource } from '../source.js'
 import { Vector as VectorLayer } from '../layer.js'
 import Feature from '../Feature.js'
-import { Point, LineString, Polygon } from '../geom.js'
+import { Point } from '../geom.js'
 import { Circle as CircleStyle, Fill, Stroke, Style, Icon, Text } from '../style.js'
 import $ from 'jquery';
 import Select from '../interaction/Select.js';
 import { click, pointerMove } from '../events/condition.js';
 import Overlay from '../Overlay.js'
-
-var font = 'bold 15px Microsoft Yahei';//统一字体、大小、加粗样式
-let this_;
-
-var _selectLayers = {};
-var _selectSingleClick, _selectPointerMove;
-var _allSelectCallBack = {};
-
-var flash_overlay;
-var flash_interval;
-
-/**
- * overlay 事件阻止控制
- * @type {boolean}
- * @private
- */
-var _stopEvent = false;
 
 /**
  * @classdesc
@@ -43,9 +26,10 @@ class TSBS {
   * @param {*} map 
   */
   constructor(map) {
-    this.map_ = map;
+    this.map_ = map; 
 
-    this_ = this;
+    // 统一字体、大小、加粗样式
+    this.font = 'bold 15px Microsoft Yahei';
 
     //判断是否已经添加事件监听
     this.isListened = false;
@@ -70,9 +54,6 @@ class TSBS {
 
     //是否随地图缩放变化
     this.isImgZoom = true;
-
-    //是否图标lable
-    this.isShowLable = true;
 
     //图片缩放比例
     this.imgScale = 1;
@@ -127,6 +108,19 @@ class TSBS {
      */
     this.allModifyFeatures = {};
 
+    this._selectLayers = {};
+    this._selectSingleClick = null,
+    this._selectPointerMove = null;
+    this._allSelectCallBack = {};
+
+    // 点位动画
+    this.flash_overlay = null;
+    this.flash_interval = null;
+
+    // overlay 事件阻止控制
+    this._stopEvent = false;
+
+    // this.init();
   }
 
   init() {
@@ -134,8 +128,8 @@ class TSBS {
       this.initEventListen();
       this.isListened = !this.isListened;
     }
-    var zoom = this_.map_.getView().getZoom();
-    var re = this_.map_.getView().getResolution();
+    var zoom = this.map_.getView().getZoom();
+    var re = this.map_.getView().getResolution();
     this.imgScale = 1 - re * zoom;
     if (zoom < 6) {
       this.imgScale = 0.5;
@@ -147,9 +141,9 @@ class TSBS {
   }
 
   initEventListen() {
-    this_.map_.getView().on('change:resolution', (evt) => {// 监听放大缩小地图
-      var zoom = this_.map_.getView().getZoom();
-      var re = this_.map_.getView().getResolution();
+    this.map_.getView().on('change:resolution', (evt) => {// 监听放大缩小地图
+      var zoom = this.map_.getView().getZoom();
+      var re = this.map_.getView().getResolution();
       if (!this.isImgZoom) {//是否允许强制重绘
         return;
       }
@@ -167,7 +161,7 @@ class TSBS {
 
   /**
    * 重绘改变图标大小
-   * @returns 
+   * @returns {*}
    * @api
    */
   reDrawHKQ() {
@@ -179,41 +173,48 @@ class TSBS {
     $.each(this.mkLayer, (i, v) => {
       if (v && i != 'k') {
         var source = v.getSource();
-        reDraw(source);
+        this.reDraw(source);
       }
     });
-
-    function reDraw(source) {
-      if (source) {
-        var fs1 = source.getFeatures();
-        if (fs1 && fs1.length > 0) {
-          for (var i in fs1) {
-            if (fs1[i].getStyle()) {
-              var ts1 = fs1[i].getStyle().getImage();
-              // var text = fs1[i].getStyle().getText();//.
-              if (ts1) {
-                ts1.setScale(this_.imgScale);
-              }
-              // if (text) {
-              //     text.setOffsetY(parseInt(text.getOffsetY())+parseFloat(this.imgScale)*10);
-              // }
-              fs1[i].changed();
+  }
+  reDraw(source) {
+    if (source) {
+      var fs1 = source.getFeatures();
+      if (fs1 && fs1.length > 0) {
+        for (var i in fs1) {
+          if (fs1[i].getStyle()) {
+            var ts1 = fs1[i].getStyle().getImage();
+            // var text = fs1[i].getStyle().getText();//.
+            if (ts1) {
+              ts1.setScale(this.imgScale);
             }
+            // if (text) {
+            //     text.setOffsetY(parseInt(text.getOffsetY())+parseFloat(this.imgScale)*10);
+            // }
+            fs1[i].changed();
           }
         }
       }
     }
   }
 
-  addGraphics(layerid, points, callBack, isCluster) {
+  /**
+   * 通用上图
+   * @param {*} layerid 图层标识
+   * @param {*} points [{id,x,y,attr,img}]
+   * @param {*} callBack 回调
+   * @param {*} isCluster 是否聚合
+   * @param {*} isShowLabel 是否显示label
+   * @returns {*}
+   * @api
+   */
+  addGraphics(layerid, points, callBack, isCluster, isShowLabel) {
     if (!layerid || layerid == null || layerid == "") {
-      throw new Error("关键参数图层ID没有传过来呀！");
-      return;
+      throw new Error("\n关键参数图层ID没有传过来呀！\nThe key parameter layer ID has not been passed!");
     }
 
     if (!(typeof (callBack) != "undefined" && typeof (callBack) == "function")) {
-      throw new Error("关键回调函数没有传过来呀！");
-      return;
+      throw new Error("\n关键回调函数没有传过来呀！\nThe key callback function has not been passed!");
     }
 
     var layer;
@@ -252,7 +253,7 @@ class TSBS {
           var offset = p.offset;
           f.setId(id);
           var lable = p.attr.BDJC || p.attr.bdjc || p.attr.RWBDMC || p.attr.rwbdmc || p.attr.MC || p.attr.mc || p.attr.rwmc;
-          f.setStyle(this.imageStyle(imgUrl, size, lable, offset, imgBackColor, imgBorderColor, txtBackColor, txtBorderColor));
+          f.setStyle(this.imageStyle(imgUrl, size, lable, offset, imgBackColor, imgBorderColor, txtBackColor, txtBorderColor, isShowLabel));
           p.attr.jd = p.x;
           p.attr.wd = p.y;
           p.attr.layerid = layerid;//记录所属图层
@@ -265,7 +266,7 @@ class TSBS {
         }
       }
       if (fs && fs.length > 0) {
-        addAdpterSource(layerid, fs);
+        this.addAdpterSource(layerid, fs);
       }
       //分层控制显示
       this.resolutionChange();
@@ -286,21 +287,30 @@ class TSBS {
       return true;
     }
 
-    /**
-     * 上图
-     * fs 要素集合
-     */
-    function addAdpterSource(layerid, fs) {
-      var source = this_.getSource(layerid);
-      if (source) {
-        source.addFeatures(fs);
-      }
-    }
-
     //初始化右键菜单
     // this.rightMenu();
   }
 
+  /**
+   * 上图 要素集合
+   * @param {*} layerid 
+   * @param {*} fs 
+   * @api
+   */
+  addAdpterSource(layerid, fs) {
+    var source = this.getSource(layerid);
+    if (source) {
+      source.addFeatures(fs);
+    }
+  }
+
+  /**
+   * 经纬度格式化
+   * @param {*} jd 
+   * @param {*} wd 
+   * @returns {*}
+   * @api
+   */
   returnNumberJWD(jd, wd) {
     return [parseFloat(jd + ""), parseFloat(wd + "")];
   }
@@ -315,16 +325,18 @@ class TSBS {
    * @param {*} imgBorderColor 图片描边颜色
    * @param {*} txtBackColor 文字背景颜色
    * @param {*} txtBorderColor 文字描边颜色
+   * @param {*} isShowLabel 是否显示label
    * @returns {Style}
+   * @api
    */
-  imageStyle(src, size, lable, offset, imgBackColor, imgBorderColor, txtBackColor, txtBorderColor) {
+  imageStyle(src, size, lable, offset, imgBackColor, imgBorderColor, txtBackColor, txtBorderColor, isShowLabel) {
     var imgUrl;
-    imgBackColor = imgBackColor ? imgBackColor : "#ff4242";
+    imgBackColor = imgBackColor ? imgBackColor : "#fff";
     imgBorderColor ? imgBorderColor : imgBackColor;
     txtBackColor = txtBackColor ? txtBackColor : "#000000";
     txtBorderColor = txtBorderColor ? txtBorderColor : "#ffffff";
     if (!src) {
-      imgUrl = "resources/dlxx/img/target.png";//默认图片
+      imgUrl = "/resources/img/mark_b.png";//默认图片
       //new test
       var style = new Style({
         image: new CircleStyle({
@@ -338,7 +350,7 @@ class TSBS {
           radius: 4
         }),
         text: new Text({
-          font: font,
+          font: this.font,
           offsetX: offset ? offset[0] : 0,
           offsetY: offset ? offset[1] : 25,
           scale: 1,
@@ -351,7 +363,7 @@ class TSBS {
             color: txtBorderColor,
             width: 1
           }),
-          text: lable ? lable.replace("<br />", "-") : ""
+          text: isShowLabel ? (lable ? lable.replace("<br />", "-") : "") :""
         })
       });
       return style;
@@ -369,7 +381,7 @@ class TSBS {
         src: imgUrl
       }),
       text: new Text({
-        font: font,
+        font: this.font,
         offsetX: offset ? offset[0] : 0,
         offsetY: offset ? offset[1] : 25,
         scale: 1,//this.imgScale,
@@ -382,7 +394,7 @@ class TSBS {
           color: txtBorderColor,
           width: 1
         }),
-        text: lable ? lable.replace("<br />", "-") : ""
+        text: isShowLabel ? (lable ? lable.replace("<br />", "-") : "") : ""
       })
     });
     return style;
@@ -406,22 +418,21 @@ class TSBS {
    * @api
    */
   selectControl(layerid, layer) {
-
     //用通用事件监听
     if (layerid && layer) {
       var layerObj = { "key": layerid, "value": layer };
       if (typeof (this.allSelectControl) != "undefined") {
-        this.allSelectControl(layerObj, function (f, type) {
+        this.allSelectControl(layerObj,  (f, type)=> {
           if (type === 1) {//鼠标点击
-            this_.selectCallBack(f);
+            this.selectCallBack(1,f);
           } else if (type === 2) {//鼠标移动
             //设置记录选中目标
-            this_.lastSelectTarget = f;
-            this_.mousePointerPopup(f);
+            this.lastSelectTarget = f;
+            this.selectCallBack(2,f);
           } else if (type === -1) {//鼠标点击 空
           } else if (type === -2) {//鼠标移动 空
-            this_.lastSelectTarget = null;
-            this_.mousePointerPopup(null);
+            this.selectCallBack(-2,this.lastSelectTarget);
+            this.lastSelectTarget = null;
           }
         });
       }
@@ -438,73 +449,73 @@ class TSBS {
     // if (CinaGIS.Measure.getDrawState()) {
     //     return;
     // }
-    if (_selectSingleClick != null) {
-      this_.map_.removeInteraction(_selectSingleClick);
-      _selectSingleClick = null;
+    if (this._selectSingleClick != null) {
+      this.map_.removeInteraction(this._selectSingleClick);
+      this._selectSingleClick = null;
     }
-    if (_selectPointerMove != null) {
-      this_.map_.removeInteraction(_selectPointerMove);
-      _selectPointerMove = null;
+    if (this._selectPointerMove != null) {
+      this.map_.removeInteraction(this._selectPointerMove);
+      this._selectPointerMove = null;
     }
     if (layerObj) {
-      if (!_selectLayers[layerObj.key]) {
-        _selectLayers[layerObj.key] = layerObj.value;
-        _allSelectCallBack[layerObj.key] = funCall;
+      if (!this._selectLayers[layerObj.key]) {
+        this._selectLayers[layerObj.key] = layerObj.value;
+        this._allSelectCallBack[layerObj.key] = funCall;
       }
     }
     var selectLayers = [];
-    $.each(_selectLayers, function (i, v) {
+    $.each(this._selectLayers,  (i, v)=> {
       if (v) {
         selectLayers.push(v);
       }
     });
     //鼠标点击选中事件
-    _selectSingleClick = new Select({
+    this._selectSingleClick = new Select({
       condition: click,
       layers: selectLayers,
       hitTolerance: 5,
       multi: true,//允许多选
       style: null
     });
-    _selectSingleClick.on('select', function (e) {
+    this._selectSingleClick.on('select',  (e)=> {
       var features = e.target.getFeatures().array_;
       if (features != null && features.length > 0) {
         var f = features[0];
         var obj = (f.getProperties().attr ? f.getProperties().attr : f.getProperties().attrObj);
         if (obj && obj.layerid) {
-          if (_allSelectCallBack[obj.layerid]) {
-            _allSelectCallBack[obj.layerid](f, 1, features);
+          if (this._allSelectCallBack[obj.layerid]) {
+            this._allSelectCallBack[obj.layerid](f, 1, features);
           }
         }
       } else {
-        this_._callBackAll(-1);
+        this._callBackAll(-1);
       }
-      this_._clearSelect();
+      this._clearSelect();
     });
-    this_.map_.addInteraction(_selectSingleClick);
+    this.map_.addInteraction(this._selectSingleClick);
     //鼠标移动选中事件
-    _selectPointerMove = new Select({
+    this._selectPointerMove = new Select({
       condition: pointerMove,
       layers: selectLayers,
       hitTolerance: 20,
       style: null
     });
-    _selectPointerMove.on('select', function (e) {
+    this._selectPointerMove.on('select',  (e)=> {
       var features = e.target.getFeatures().array_;
       if (features != null && features.length > 0) {
         var f = features[0];
         var obj = (f.getProperties().attr ? f.getProperties().attr : f.getProperties().attrObj);
         if (obj && obj.layerid) {
-          if (_allSelectCallBack[obj.layerid]) {
-            _allSelectCallBack[obj.layerid](f, 2);
+          if (this._allSelectCallBack[obj.layerid]) {
+            this._allSelectCallBack[obj.layerid](f, 2);
           }
         }
       } else {
-        this_._callBackAll(-2);
+        this._callBackAll(-2);
       }
-      this_._clearSelect();
+      this._clearSelect();
     });
-    this_.map_.addInteraction(_selectPointerMove);
+    this.map_.addInteraction(this._selectPointerMove);
   }
 
   /**
@@ -512,8 +523,8 @@ class TSBS {
    * @param {*} type 
    */
   _callBackAll(type) {
-    if (_allSelectCallBack) {
-      $.each(_allSelectCallBack, function (i, v) {
+    if (this._allSelectCallBack) {
+      $.each(this._allSelectCallBack,  (i, v) =>{
         if (v) {
           v(null, type);
         }
@@ -523,19 +534,20 @@ class TSBS {
 
   _clearSelect() {
     //通用的select
-    if (_selectSingleClick) {
+    if (this._selectSingleClick) {
       // _selectSingleClick.featureOverlay_.getSource().clear();
-      _selectSingleClick.getFeatures().clear();
+      this._selectSingleClick.getFeatures().clear();
     }
   }
 
   /**
-   * 标号选择回调
+   * 选择回调
+   * @param {*} type
    * @param {*} f 
-   * @returns 
+   * @returns {*}
    * @api
    */
-  selectCallBack(f) {
+  selectCallBack(type,f) {
     this.clearSelect();
     var attr = f.getProperties().attr;
     //分组回调时，组内每个位置信息重新赋值 popup 防止位置信息不正常
@@ -544,7 +556,7 @@ class TSBS {
 
     if (attr && attr.layerid) {
       if (this.callBackFuns[attr.layerid]) {
-        this.callBackFuns[attr.layerid](attr);
+        this.callBackFuns[attr.layerid](type,attr,f);
         this.clearSelect();
         return;
       }
@@ -560,9 +572,9 @@ class TSBS {
     //   this.selectSingleClick.featureOverlay_.getSource().clear();
     // }
     //通用的select
-    if (_selectSingleClick) {
+    if (this._selectSingleClick) {
       // _selectSingleClick.featureOverlay_.getSource().clear();
-      _selectSingleClick.getFeatures().clear()
+      this._selectSingleClick.getFeatures().clear()
     }
   }
 
@@ -620,29 +632,28 @@ class TSBS {
       var mc = kzmc ? kzmc : "显示部队番号";
       var tipDiv = document.createElement("div");
       tipDiv.innerHTML = "<div class='fl'>" + mc + "</div>";
-      removeP();
+      this.removeP(key);
       var marker = new Overlay({
         id: key,
         position: f.getGeometry().getCoordinates(),
         positioning: 'center-center',
         element: this.eleFun3(key, $(tipDiv).html(), 0, 80),
-        stopEvent: _stopEvent,
+        stopEvent: this._stopEvent,
         offset: [0, -50]
       });
       this.map_.addOverlay(marker);
       $(marker.getElement()).css({ "position": "relative" });
     } else {
-      removeP()
-    }
-
-    function removeP() {
-      var overlay = this_.map_.getOverlayById(key);
-      if (overlay) {
-        this_.map_.removeOverlay(overlay);
-      }
+      this.removeP(key)
     }
   }
 
+  removeP(key){
+    var overlay = this.map_.getOverlayById(key);
+    if (overlay) {
+      this.map_.removeOverlay(overlay);
+    }
+  }
   /**
    * 弹弹弹
    * @param {*} kzAttr 无需自己定义直接扔过来
@@ -652,7 +663,7 @@ class TSBS {
    * @param {*} w 窗体宽度
    * @param {*} h 窗体高度
    * @param {*} offset [x,y] 偏移
-   * @returns 
+   * @returns {*}
    * @api
    */
   showPopup(kzAttr, eleFun, pageUrl, title, w, h, offset) {
@@ -683,8 +694,8 @@ class TSBS {
       position: [jd, wd],
       positioning: 'center-center',
       element: this.eleFun(id, [jd, wd], xqTypeObj, w, h, title),
-      stopEvent: _stopEvent,
-      offset: offset ? offset : [10, 10]
+      stopEvent: this._stopEvent,
+      offset: offset ? offset : [10,10]
     });
     this.map_.addOverlay(marker);
     //避免窗口被遮挡
@@ -708,7 +719,7 @@ class TSBS {
    */
   eleFun(id, coordinate, xqTypeObj, w, h, title) {
     w = w ? w : 500;
-    h = h ? h : 500;
+    h = h ? h : 0;
     var titleMC = title ? title : "详情";
     var tipDiv = document.createElement("div");
     tipDiv.style.position = "absolute";
@@ -719,16 +730,16 @@ class TSBS {
     // tipDiv.style.width = 470 + "px";
     tipDiv.style.width = w + "px";
     tipDiv.style.height = h + "px";
-    tipDiv.style.border = "2px solid #259de3";
+    // tipDiv.style.border = "2px solid #259de3";
     $(tipDiv).css({
       "border-bottom-left-radius": "5px",
       "border-bottom-right-radius": "5px"
     });
 
     var tipDivTitle = document.createElement("div");
-    tipDivTitle.style.position = "absolute";
-    tipDivTitle.style.top = "-32px";
-    tipDivTitle.style.left = "-2px";
+    // tipDivTitle.style.position = "absolute";
+    // tipDivTitle.style.top = "-32px";
+    // tipDivTitle.style.left = "-2px";
     //tipDivTitle.style.zIndex = 999;
     tipDivTitle.style.opacity = "1";
     tipDivTitle.style.display = "block";
@@ -739,13 +750,14 @@ class TSBS {
     tipDivTitle.style.backgroundColor = "#217F9B";
     tipDivTitle.style.border = "2px solid #259de3";
     tipDivTitle.style.color = "#fff";
-    tipDivTitle.style.fontSize = "20px";
+    tipDivTitle.style.fontSize = "14px";
     $(tipDivTitle).css({
       "border-top-left-radius": "5px",
       "border-top-right-radius": "5px"
     });
     var titleDiv = '<div><span style="vertical-align:middle">' + titleMC + '</span>' +
-      '<a style="font-size:14px;cursor:pointer;margin-left: 235px;color: white" onClick=removePopup("' + id + '")>关闭</a></div>';
+      '<a style="font-size:34px;cursor:pointer;float:right;color: white" onClick=removePopup("' + id + '")>×</a></div>';
+
     tipDivTitle.innerHTML = titleDiv;
 
     if (xqTypeObj.type === "url") {//url iframe方式
@@ -792,7 +804,7 @@ class TSBS {
     tipDiv.style.zIndex = "100";
     //tipDiv.style.border = "2px solid #259de3";
     var html_ =
-      "    <div class='fl'  style=\"padding:10px;border:1px solid rgba(19, 144, 250, .8);background:rgba(1, 12, 22, .9);box-shadow: 0 0 10px #008bff inset;color:#ffffff;\">"
+      "    <div class='fl'  style=\"padding:4px 8px;border:1px solid rgba(19, 144, 250, .8);background:rgba(1, 12, 22, .9);box-shadow: 0 0 10px #008bff inset;color:#ffffff;\">"
       + html +
       "    </div>";
     tipDiv.innerHTML = html_;
@@ -894,7 +906,7 @@ class TSBS {
    */
   clearAll() {
     var layers = this.mkLayer;
-    $.each(layers, function (i, layers) {
+    $.each(layers,  (i, layers)=> {
       this.removeGraphic(i);
     })
   }
@@ -1079,30 +1091,30 @@ class TSBS {
    * @api
    */
   flash(position, size) {
-    if (flash_interval) {
-      window.clearInterval(flash_interval);
+    if (this.flash_interval) {
+      window.clearInterval(this.flash_interval);
     }
-    if (flash_overlay) {
-      this.map_.removeOverlay(flash_overlay);
-      flash_overlay = null;
+    if (this.flash_overlay) {
+      this.map_.removeOverlay(this.flash_overlay);
+      this.flash_overlay = null;
     }
     // var flash_div = document.getElementById('css_animation');
     var flash_div = document.createElement('div');
     flash_div.className = 'css_animation';
     flash_div.style.display = 'block';
-    flash_overlay = new Overlay({
+    this.flash_overlay = new Overlay({
       element: flash_div,
       positioning: 'center-center'
     });
-    this.map_.addOverlay(flash_overlay);
-    flash_overlay.setPosition(position);
+    this.map_.addOverlay(this.flash_overlay);
+    this.flash_overlay.setPosition(position);
 
     var flashNum = 0;
-    flash_interval = window.setInterval(function () {
+    this.flash_interval = window.setInterval( ()=> {
       if (flashNum >= 40) {
-        window.clearInterval(flash_interval);
-        if (flash_overlay) {
-          flash_overlay.setPosition(undefined);
+        window.clearInterval(this.flash_interval);
+        if (this.flash_overlay) {
+          this.flash_overlay.setPosition(undefined);
         }
       }
       flashNum++;

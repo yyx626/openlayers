@@ -343,3 +343,19 @@
 .ol-overviewmap .ol-overviewmap-box:hover {
   cursor: move;
 }
+/**红色点扩散闪烁样式*/
+.css_animation{
+	height:50px; 
+	width:50px;
+	border-radius: 25px; 
+	background: rgba(255, 0, 0, 0.9);
+	transform: scale(0);
+	animation: mypoint 3s;      
+	animation-iteration-count: infinite;
+}
+@keyframes mypoint{
+	to{
+		transform: scale(1.5);
+		background: rgba(0, 0, 0, 0);
+	}
+}

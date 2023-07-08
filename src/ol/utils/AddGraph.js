@@ -7,7 +7,6 @@ import { Point, LineString, Polygon } from '../geom.js'
 import { Modify } from '../interaction.js'
 import { getVectorContext } from '../render.js';
 
-import LayerManage from './LayerManage.js'
 import { pointStyle, commonStyle } from './GetStyle.js'
 
 /**
@@ -24,7 +23,7 @@ class AddGraph {
    */
   constructor(map) {
     this.map_ = map;
-    this.layerManage_ = new LayerManage(this.map_);
+    this.layerManage_ = map.utils.LayerManage;
   }
 
   /**

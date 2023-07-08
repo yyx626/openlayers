@@ -5,8 +5,6 @@ import GeoJSON from '../format/GeoJSON.js'
 import { fromCircle } from '../geom/Polygon.js'
 import * as turf from '@turf/turf'
 
-import LayerManage from './LayerManage.js'
-
 /**
  * @classdesc
  * 缓冲区绘制
@@ -20,7 +18,7 @@ class BufferDraw {
    */
   constructor(map) {
     this.map_ = map;
-    this.layerManage_ = new LayerManage(this.map_);
+    this.layerManage_ = map.utils.LayerManage;
   }
 
   /**

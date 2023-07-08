@@ -107,24 +107,24 @@ export const LAYER_STYLE = new Style({
 export function pointStyle(options) {
   return new Style({
     image: new Icon({
-      src: options.img ? options.img : 'resources/img/2bj.png',
-      scale: options.imgScale ? options.imgScale : 1,
-      anchor: options.anchor ? options.anchor : [0.5, 0.5],
-      size: options.size,
-      offset: options.offset ? options.offset : [0, 0]
+      src: options && options.img ? options.img : "/resources/img/mark_b.png",
+      scale: options && options.imgScale ? options.imgScale : 1,
+      anchor: options && options.anchor ? options.anchor : [0.5, 1],
+      size: options && options.size,
+      offset: options && options.offset ? options.offset : [0, 0]
     }),
     text: options.text ? new Text({
-      font: options.font ? options.font : '10px sans-serif',
-      text: options.text,
-      scale: options.textScale,
-      offsetX: options.textOffsetX ? options.textOffsetX : 0,
-      offsetY: options.textOffsetY ? options.textOffsetY : 0,
+      font: options && options.font ? options.font : '10px sans-serif',
+      text: options && options.text,
+      scale: options && options.textScale,
+      offsetX: options && options.textOffsetX ? options.textOffsetX : 0,
+      offsetY: options && options.textOffsetY ? options.textOffsetY : 0,
       fill: new Fill({
-        color: options.textFill ? options.textFill : 'black',
+        color: options && options.textFill ? options.textFill : 'black',
       }),
       stroke: new Stroke({
-        color: options.textStroke ? options.textStroke : 'white',
-        width: options.textWidth ? options.textWidth : 1,
+        color: options && options.textStroke ? options.textStroke : 'white',
+        width: options && options.textWidth ? options.textWidth : 1,
       })
     }) : null
   })

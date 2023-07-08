@@ -2,7 +2,6 @@
  * @module ol/utils/PickPoint
  */
 
-import MouseDraw from './MouseDraw.js';
 import { pointStyle } from './GetStyle.js';
 
 /**
@@ -18,21 +17,32 @@ class PickPoint {
    */
   constructor(map) {
     this.map_ = map;
-    this.drawObj_ = new MouseDraw(this.map_);
+    this.drawObj_ = map.utils.MouseDraw;
   }
 
   /**
    * 图上选点
-   * @param {string} layerId 图层ID
    * @param {*} options 点样式
    * @param {Boolean} clearLast 是否清除上一次选点（清除图层上所有）
    * @returns {Promise} resolve({ <feature>feature, coord })
    * @api
    */
-  selectPoint(layerId, options, clearLast) {
-    return new Promise((resolve) => {
-      this.drawObj_.drawGraph(layerId, 'Point', clearLast).then((p) => {
-        p.feature.setStyle(pointStyle(options));
+  selectPoint(options, clearLast) {
+    return new Promise((resolve, reject) => {
+      let styleOpt;
+      if(!options || options === null || options === undefined ){
+        styleOpt = {};
+      }else{
+        styleOpt = options;
+      }
+      let isClear;
+      if(!clearLast || clearLast === null || clearLast === undefined ){
+        isClear = true;
+      }else{
+        isClear = clearLast;
+      }
+      this.drawObj_.drawGraph('Point', null, isClear).then((p) => {
+        p.feature.setStyle(pointStyle(styleOpt));
         let coord = p.feature.getGeometry().getCoordinates();
         resolve({
           feature: p.feature,

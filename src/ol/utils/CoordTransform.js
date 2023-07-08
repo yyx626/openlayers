@@ -145,29 +145,24 @@ class CoordTransform {
   /**
    * 十进制 转 度°分′秒″
    * @param {array} sjzCoord 
-   * @returns {Object} {"format":"31° 05′ 17″ N 122° 41′ 28″ E","value":{"jdd":[" 122"],"jdf":"41","jdm":"28","wdd":["31"],"wdf":"05","wdm":"17"}}
+   * @returns {Object} 
    * @api
    */
   toDegree(sjzCoord) {
-    let CoordinateDfm = toStringHDMS(sjzCoord);// 十进制--度分秒
-
-    let CoordinateDfm_wdd = CoordinateDfm.split('°', 1);// 度分秒制--纬度度
-    let CoordinateDfm_jdd = CoordinateDfm.split('N', 2)[1].split('°', 1);// 度分秒制--经度度
-
-    let CoordinateDfm_wdf = CoordinateDfm.split(' ')[1].split('′')[0];// 度分秒--纬度分
-    let CoordinateDfm_jdf = CoordinateDfm.split(' ')[5].split('′')[0];// 度分秒--经度分
-
-    let CoordinateDfm_wdm = CoordinateDfm.split(' ')[2].split('″')[0];// 度分秒--纬度秒
-    let CoordinateDfm_jdm = CoordinateDfm.split(' ')[6].split('″')[0];// 度分秒--经度分
+    let res = toStringHDMS([sjzCoord[1],sjzCoord[0]]);
     return {
-      format: CoordinateDfm,
-      value: {
-        jdd: CoordinateDfm_jdd,
-        jdf: CoordinateDfm_jdf,
-        jdm: CoordinateDfm_jdm,
-        wdd: CoordinateDfm_wdd,
-        wdf: CoordinateDfm_wdf,
-        wdm: CoordinateDfm_wdm
+      format: res,
+      obj: {
+        jd: {
+          d: parseFloat(res.split(" ")[0]),
+          f: parseFloat(res.split(" ")[1]),
+          m: parseFloat(res.split(" ")[2])
+        },
+        wd: {
+          d: parseFloat(res.split(" ")[4]),
+          f: parseFloat(res.split(" ")[5]),
+          m: parseFloat(res.split(" ")[6])
+        }
       }
     }
   }

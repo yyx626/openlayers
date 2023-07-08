@@ -4,8 +4,6 @@
 import { Point, LineString, Polygon, Circle } from '../geom.js'
 import Feature from '../Feature.js'
 
-import LayerManage from './LayerManage.js'
-
 /**
  * @classdesc
  * 根据坐标绘制
@@ -19,7 +17,7 @@ class CoordDraw {
    */
   constructor(map) {
     this.map_ = map;
-    this.layerManage_ = new LayerManage(this.map_);
+    this.layerManage_ = map.utils.LayerManage;
   }
 
   /**

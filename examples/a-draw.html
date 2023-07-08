@@ -1,0 +1,27 @@
+---
+layout: example.html
+title: draw
+shortdesc: Example of drawing.
+docs: >
+  绘制 draw
+
+tags: "yyx, draw"
+---
+<div id="map" class="map" tabindex="0"></div>
+<form>
+  <label for="type">Measurement type &nbsp;</label>
+  <select id="type">
+    <option value="Point">Point</option>
+    <option value="LineString">LineString</option>
+    <option value="Polygon">Polygon</option>
+    <option value="Circle">Circle</option>
+    <option value="Rectangle">Rectangle</option>
+    <option value="FreePolygon">FreePolygon</option>
+    <option value="None">Clear</option>
+  </select>
+  <label for="type">Format type &nbsp;</label>
+  <select id="formatType">
+    <option value="1">Spherical</option>
+    <option value="2">Plane</option>
+  </select>
+</form>
